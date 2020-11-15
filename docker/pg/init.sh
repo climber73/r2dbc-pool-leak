@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SQL="SET TRANSACTION ISOLATION LEVEL SERIALIZABLE"
+SQL="CREATE DATABASE IF NOT EXISTS billing"
 
 RETRIES=10
 
@@ -9,7 +9,7 @@ until psql --host pg --port 5432 -U postgres -c "$SQL" > /dev/null 2>&1 || [ $RE
   sleep 1
 done
 
-for script in /migrations/*.sql; do
+for script in /init/*.sql; do
   echo $script
-  psql --host pg --port 5432 -U postgres -f $script
+  psql --host pg --port 5432 -U postgres billing -f $script
 done

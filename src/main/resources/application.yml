@@ -1,13 +1,9 @@
 spring:
-  application:
-    name: billing
   r2dbc:
-    url: r2dbc:postgresql://localhost:26257/billing?sslmode=disable
-    username: root
+    url: r2dbc:postgresql://localhost:5432/billing?sslmode=disable
+    username: postgres
     password: ""
     pool:
       max-size: 10
-      validation-query: SELECT 1
-      initial-size: 2
 
 management.endpoints.web.exposure.include: prometheus

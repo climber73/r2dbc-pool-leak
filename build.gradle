@@ -1,0 +1,28 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+plugins {
+  id("application")
+  id("idea")
+}
+
+java.sourceCompatibility = JavaVersion.VERSION_11
+java.targetCompatibility = JavaVersion.VERSION_11
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation("org.springframework.boot:spring-boot-starter-webflux:2.3.5.RELEASE")
+  implementation("org.springframework.boot:spring-boot-starter-actuator:2.3.5.RELEASE")
+  implementation("org.springframework.data:spring-data-r2dbc:1.2.0")
+  implementation("io.r2dbc:r2dbc-pool:0.8.5.RELEASE")
+  implementation("io.r2dbc:r2dbc-postgresql:0.8.6.RELEASE")
+  implementation("io.projectreactor.addons:reactor-pool:0.2.0")
+  implementation("io.projectreactor:reactor-core:3.4.0")
+  implementation("io.micrometer:micrometer-registry-prometheus:1.5.5")
+}
