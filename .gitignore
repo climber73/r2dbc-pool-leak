@@ -31,5 +31,5 @@ out/
 ### VS Code ###
 .vscode/
 
-# Gitlab CI
-.deploy/RELEASE_VERSION
+tank/logs/*
+tank/token.txt
