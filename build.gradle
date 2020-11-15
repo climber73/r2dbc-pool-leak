@@ -1,28 +1,18 @@
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
 plugins {
-  id("application")
-  id("idea")
+  id 'org.springframework.boot' version '2.4.0'
+  id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+  id 'java'
 }
-
-java.sourceCompatibility = JavaVersion.VERSION_11
-java.targetCompatibility = JavaVersion.VERSION_11
 
 repositories {
   mavenCentral()
 }
 
 dependencies {
-  implementation("org.springframework.boot:spring-boot-starter-webflux:2.3.5.RELEASE")
-  implementation("org.springframework.boot:spring-boot-starter-actuator:2.3.5.RELEASE")
-  implementation("org.springframework.data:spring-data-r2dbc:1.2.0")
-  implementation("io.r2dbc:r2dbc-pool:0.8.5.RELEASE")
-  implementation("io.r2dbc:r2dbc-postgresql:0.8.6.RELEASE")
-  implementation("io.projectreactor.addons:reactor-pool:0.2.0")
-  implementation("io.projectreactor:reactor-core:3.4.0")
-  implementation("io.micrometer:micrometer-registry-prometheus:1.5.5")
+  implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+  implementation 'org.springframework.boot:spring-boot-starter-webflux'
+  implementation 'org.springframework.boot:spring-boot-starter-actuator'
+  runtimeOnly 'io.r2dbc:r2dbc-postgresql'
+  runtimeOnly 'org.postgresql:postgresql'
+  implementation 'io.micrometer:micrometer-registry-prometheus'
 }
