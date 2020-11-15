@@ -1,0 +1,28 @@
+version: '2.4'
+services:
+  cockroach:
+    image: cockroachdb/cockroach
+    ports:
+      - "26257:26257"
+      - "8081:8080"
+    command: start-single-node --insecure
+  cockroach-init:
+    image: cockroachdb/cockroach
+    volumes:
+      - ./docker/cockroach:/init
+    entrypoint: /bin/bash
+    command: /init/init.sh
+#  pg:
+#    image: postgres
+#    environment:
+#      POSTGRES_HOST_AUTH_METHOD: trust
+#      POSTGRES_DB: billing
+#    ports:
+#      - "5432:5432"
+#  pg-init:
+#    image: postgres
+#    volumes:
+#      - ./docker/pg/init.sh:/init.sh
+#      - ./src/main/resources/db:/migrations
+#    entrypoint: /bin/bash
+#    command: /init.sh
