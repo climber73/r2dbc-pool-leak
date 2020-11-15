@@ -1,9 +1,10 @@
 package sample;
 
+import io.r2dbc.spi.R2dbcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,14 +20,17 @@ class TestController {
     final static int MAX_RETRIES = 10;
     final static Logger log = LoggerFactory.getLogger(TestController.class);
 
-    @Autowired
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
+    private final PaymentRepository paymentRepository;
+    private final TransactionalOperator txOperator;
 
-    @Autowired
-    private PaymentRepository paymentRepository;
-
-    @Autowired
-    private TransactionalOperator txOperator;
+    public TestController(AccountRepository accountRepository,
+                          PaymentRepository paymentRepository,
+                          TransactionalOperator txOperator) {
+        this.accountRepository = accountRepository;
+        this.paymentRepository = paymentRepository;
+        this.txOperator = txOperator;
+    }
 
     @PostMapping("/payment")
     Mono<String> makePayment() {
@@ -36,7 +40,7 @@ class TestController {
         log.info("got payment request [{}]", paymentId);
         var payment = new Payment(paymentId, accountId, amount);
         try {
-            return executeWithRetries(
+            return executeInTransactionWithRetries(
                     accountRepository.findById(accountId)
                             .flatMap(account -> {
                                 if (account.balance - amount < 0) {
@@ -61,12 +65,18 @@ class TestController {
         }
     }
 
-    Mono<?> executeWithRetries(Mono<?> mono) {
+    Mono<?> executeInTransactionWithRetries(Mono<?> mono) {
         UUID uuid = UUID.randomUUID();
         return mono
                 .as(txOperator::transactional)
                 .retryWhen(Retry.fixedDelay(MAX_RETRIES, Duration.ZERO)
-                        .filter(it -> it instanceof ConcurrencyFailureException)
+                        .filter(it -> it instanceof DataAccessException)
+                        .filter(it -> {
+                            R2dbcException cause = (R2dbcException) it.getCause();
+                            // don't know why io.r2dbc.postgresql.ExceptionFactory
+                            // does not recognize 40001 state:
+                            return "40001".equals(cause.getSqlState());
+                        })
                         .doBeforeRetry(s -> log.info("retry for {}", uuid)))
                 .onErrorMap(ConcurrencyFailureException.class,
                         e -> new RetryAttemptsExhaustedException("tx has not succeed within 10 retries"));
