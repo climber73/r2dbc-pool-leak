@@ -15,4 +15,9 @@ dependencies {
   runtimeOnly 'io.r2dbc:r2dbc-postgresql'
   runtimeOnly 'org.postgresql:postgresql'
   implementation 'io.micrometer:micrometer-registry-prometheus'
+  testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+  useJUnitPlatform()
 }

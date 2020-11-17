@@ -1,22 +1,12 @@
 version: '2.4'
 services:
-  app:
-    build: .
-    environment:
-      DATABASE_HOST: pg
-      DATABASE_PORT: 5432
-    ports:
-      - "8080:8080"
-    working_dir: /app
-    depends_on:
-      - pg-init
   pg:
     image: postgres:13.1
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_DB: billing
-    expose:
-      - "5432"
+    ports:
+      - "5432:5432"
   pg-init:
     image: postgres:13.1
     volumes:

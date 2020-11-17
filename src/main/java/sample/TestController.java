@@ -37,7 +37,7 @@ class TestController {
         long accountId = 1;
         long amount = 1;
         UUID paymentId = UUID.randomUUID();
-        log.info("got payment request [{}]", paymentId);
+        log.info("got request [{}]", paymentId);
         var payment = new Payment(paymentId, accountId, amount);
         try {
             return executeInTransactionWithRetries(
@@ -79,6 +79,9 @@ class TestController {
                         })
                         .doBeforeRetry(s -> log.info("retry for {}", uuid)))
                 .onErrorMap(ConcurrencyFailureException.class,
-                        e -> new RetryAttemptsExhaustedException("tx has not succeed within 10 retries"));
+                        e -> new RetryAttemptsExhaustedException("tx has not succeed within 10 retries"))
+                .doOnCancel(() -> {
+                    log.info("got cancel signal for [{}]", uuid);
+                });
     }
 }
