@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SQL="CREATE DATABASE IF NOT EXISTS billing"
+SQL="DROP DATABASE billing; CREATE DATABASE billing"
 
 RETRIES=10
 

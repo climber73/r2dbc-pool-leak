@@ -2,4 +2,4 @@
 
 docker-compose up --detach
 
-./gradlew :clean :test
+./gradlew --info :clean :test

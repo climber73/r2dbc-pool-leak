@@ -3,7 +3,6 @@ package sample;
 import io.r2dbc.spi.R2dbcException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,32 +36,26 @@ class TestController {
         long accountId = 1;
         long amount = 1;
         UUID paymentId = UUID.randomUUID();
-        log.info("got request [{}]", paymentId);
+        log.debug("got request [{}]", paymentId);
         var payment = new Payment(paymentId, accountId, amount);
-        try {
-            return executeInTransactionWithRetries(
-                    accountRepository.findById(accountId)
-                            .flatMap(account -> {
-                                if (account.balance - amount < 0) {
-                                    return Mono.error(
-                                            new RuntimeException("account [$accountId] has not enough money"));
-                                } else {
-                                    return accountRepository
-                                            .updateBalance(accountId, account.balance - amount);
-                                }
-                            })
-                            .then(paymentRepository.save(payment)))
-                    .then(
-                            Mono.fromCallable(() -> { // todo!
-                                log.info("payment [{}] created", paymentId);
-                                return "OK";
-                            })
-                    );
-
-        } catch (RetryAttemptsExhaustedException e) {
-            log.info(e.getMessage());
-            return Mono.error(e);
-        }
+        return executeInTransactionWithRetries(
+                accountRepository.findById(accountId)
+                        .flatMap(account -> {
+                            if (account.balance - amount < 0) {
+                                return Mono.error(
+                                        new RuntimeException("account [$accountId] has not enough money"));
+                            } else {
+                                return accountRepository
+                                        .updateBalance(accountId, account.balance - amount);
+                            }
+                        })
+                        .then(paymentRepository.save(payment)))
+                .then(
+                        Mono.fromCallable(() -> { // todo!
+                            log.debug("payment [{}] created", paymentId);
+                            return "OK";
+                        })
+                );
     }
 
     Mono<?> executeInTransactionWithRetries(Mono<?> mono) {
@@ -77,11 +70,9 @@ class TestController {
                             // does not recognize 40001 state:
                             return "40001".equals(cause.getSqlState());
                         })
-                        .doBeforeRetry(s -> log.info("retry for {}", uuid)))
-                .onErrorMap(ConcurrencyFailureException.class,
-                        e -> new RetryAttemptsExhaustedException("tx has not succeed within 10 retries"))
-                .doOnCancel(() -> {
-                    log.info("got cancel signal for [{}]", uuid);
-                });
+                        .doBeforeRetry(s -> log.debug("retry for {}", uuid)))
+                .onErrorResume(e -> Mono.fromRunnable(() -> log.debug("tx for [{}] has not succeed within 10 retries", uuid))
+                        .then(Mono.empty()))
+                .doOnCancel(() -> log.debug("got cancel signal for [{}]", uuid));
     }
 }

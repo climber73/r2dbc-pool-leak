@@ -3,6 +3,8 @@ package sample;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -10,6 +12,7 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
@@ -34,17 +37,15 @@ class AppTest {
     final static int TASKS_NUMBER = 30;
     final static int REQUESTS_PER_TASK = 20;
 
+    final static Logger log = LoggerFactory.getLogger(AppTest.class);
+
     @Test
     void test() throws Exception {
-        /*
-        Preliminary test to estimate timings. Can be skipped it if the test duration is well known
-        for your environment
-         */
+        // Can be skipped it if the test duration is well known for your environment
+        log.info("---- run preliminary test to estimate required timings ----");
         Duration duration = estimateRequiredTimings();
-
-        /*
-        The test itself
-         */
+        log.info(">>> preliminary load test took " + duration);
+        log.info("---------------------- test itself ------------------------");
         actualTest(duration);
     }
 
@@ -55,7 +56,7 @@ class AppTest {
 
         Thread.sleep(duration.toMillis() / 2);
 
-        System.out.println("----------------------- shutdown --------------------------");
+        log.info("----------------------- shutdown --------------------------");
         es.shutdownNow();
         es.awaitTermination(0, TimeUnit.MILLISECONDS);
 
@@ -64,9 +65,9 @@ class AppTest {
          */
         Thread.sleep(duration.toMillis());
 
-        System.out.println("------------------------- idle ----------------------------");
-        System.out.println("------------------------- idle ----------------------------");
-        System.out.println("------------------------- idle ----------------------------");
+        log.info("------------------------- idle ----------------------------");
+        log.info("------------------------- idle ----------------------------");
+        log.info("------------------------- idle ----------------------------");
 
         double acquired = getMetricValue("r2dbc.pool.acquired");
         assertEquals(0.0, acquired,
@@ -81,7 +82,6 @@ class AppTest {
         Duration duration;
         if (es.awaitTermination(120, TimeUnit.SECONDS)) {
             duration = Duration.between(start, Instant.now());
-            System.out.println(">>> load test took " + duration);
         } else {
             throw new RuntimeException("Too heavy load");
         }
@@ -106,7 +106,10 @@ class AppTest {
                     .postForEntity(url, null, String.class);
             assertEquals("OK", response.getBody());
         } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+            if ((e.getCause() instanceof SocketTimeoutException)) {
+                return; // suppress timeouts
+            }
+            log.error("Error: " + e.getMessage());
         }
     }
 
