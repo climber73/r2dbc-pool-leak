@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SQL="DROP DATABASE billing; CREATE DATABASE billing"
+SQL="SELECT 1"
 
 RETRIES=10
 

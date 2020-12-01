@@ -21,20 +21,11 @@ class AccountRepository {
                 .one();
     }
 
-    Mono<Integer> updateBalance(Long contractId, Long balance) {
-        String q = "UPDATE accounts SET balance = :balance WHERE id = :id";
+    Mono<Integer> charge(Long id, Long amount) {
+        String q = "UPDATE accounts SET balance = balance - :amount WHERE id = :id";
         return databaseClient.sql(q)
-                .bind("id", contractId)
-                .bind("balance", balance)
-                .fetch()
-                .rowsUpdated();
-    }
-
-    Mono<Integer> save(Account account) {
-        String insert = "INSERT INTO accounts (id, balance) VALUES ($1, $2)";
-        return databaseClient.sql(insert)
-                .bind(0, account.id)
-                .bind(1, account.balance)
+                .bind("id", id)
+                .bind("amount", amount)
                 .fetch()
                 .rowsUpdated();
     }

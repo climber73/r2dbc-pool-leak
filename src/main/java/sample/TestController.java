@@ -38,29 +38,9 @@ class TestController {
         UUID paymentId = UUID.randomUUID();
         log.debug("got request [{}]", paymentId);
         var payment = new Payment(paymentId, accountId, amount);
-        return executeInTransactionWithRetries(
-                accountRepository.findById(accountId)
-                        .flatMap(account -> {
-                            if (account.balance - amount < 0) {
-                                return Mono.error(
-                                        new RuntimeException("account [$accountId] has not enough money"));
-                            } else {
-                                return accountRepository
-                                        .updateBalance(accountId, account.balance - amount);
-                            }
-                        })
-                        .then(paymentRepository.save(payment)))
-                .then(
-                        Mono.fromCallable(() -> { // todo!
-                            log.debug("payment [{}] created", paymentId);
-                            return "OK";
-                        })
-                );
-    }
-
-    Mono<?> executeInTransactionWithRetries(Mono<?> mono) {
-        UUID uuid = UUID.randomUUID();
-        return mono
+        return accountRepository.findById(accountId)
+                .then(accountRepository.charge(accountId, amount))
+                .then(paymentRepository.save(payment))
                 .as(txOperator::transactional)
                 .retryWhen(Retry.fixedDelay(MAX_RETRIES, Duration.ZERO)
                         .filter(it -> it instanceof DataAccessException)
@@ -70,9 +50,9 @@ class TestController {
                             // does not recognize 40001 state:
                             return "40001".equals(cause.getSqlState());
                         })
-                        .doBeforeRetry(s -> log.debug("retry for {}", uuid)))
-                .onErrorResume(e -> Mono.fromRunnable(() -> log.debug("tx for [{}] has not succeed within 10 retries", uuid))
-                        .then(Mono.empty()))
-                .doOnCancel(() -> log.debug("got cancel signal for [{}]", uuid));
+                        .doBeforeRetry(s -> log.debug("retry for [{}]", paymentId)))
+                .doOnCancel(() -> log.debug("got cancel signal for [{}]", paymentId))
+                .doOnSuccess(integer -> log.debug("payment [{}] created", paymentId))
+                .thenReturn("OK");
     }
 }

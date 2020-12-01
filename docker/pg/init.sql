@@ -1,3 +1,6 @@
+DROP DATABASE billing;
+CREATE DATABASE billing;
+
 CREATE TABLE IF NOT EXISTS accounts (
     id              bigint      PRIMARY KEY,
     balance         bigint      NOT NULL
